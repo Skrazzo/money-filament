@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\AccountResource\Pages;
 
 use App\Filament\Resources\AccountResource;
+use App\Models\Account;
 use App\Models\Transaction;
 use Exception;
 use Filament\Forms\Components\Radio;
@@ -14,10 +15,18 @@ use Filament\Forms\Components\TextInput;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Hidden;
 use Filament\Notifications\Notification;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 
-class ManageAccount extends Page implements HasForms
+use Filament\Tables\Table;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Illuminate\Support\Facades\Auth;
+
+class ManageAccount extends Page implements HasForms, HasTable
 {
     use InteractsWithForms;
+    use InteractsWithTable;
 
     public ?array $data = []; 
 
@@ -44,13 +53,16 @@ class ManageAccount extends Page implements HasForms
                     ->send();
             }
         }catch (Exception $err){
-            return ;
+            dd($err);
         }
     }
 
     public function mount(): void 
     {
-        
+        if(!Auth::user()->account()->find($this->record)){
+            redirect('/admin/accounts');
+        }
+
         $this->form->fill([
             'income' => false,
             'account_id' => $this->record,
@@ -88,6 +100,24 @@ class ManageAccount extends Page implements HasForms
             ])
             ->statePath('data');
     } 
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query(Transaction::query()->where('account_id', $this->record))
+            ->columns([
+                TextColumn::make('value')->label('Ammount'),
+            ])
+            ->filters([
+                // ...
+            ])
+            ->actions([
+                // ...
+            ])
+            ->bulkActions([
+                // ...
+            ]);
+    }
 
     protected function getFormActions(): array
     {
